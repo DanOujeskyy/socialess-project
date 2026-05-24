@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -42,8 +43,32 @@ export default function HomeScreen() {
     setRefreshing(true);
     try {
       const state = await gameService.getMyPlayerState();
+      const ts = useTimeStore.getState();
+      ts.setCurrentTime(state.currentTime);
+      ts.setMaxTime(state.maxTime);
+      ts.setActiveEffects(state.activeEffects);
+      ts.setStreak(state.streak);
+      ts.setDailyStats(state.dailyStats);
     } catch {}
     setRefreshing(false);
+  };
+
+  const handleJoinChallenge = async () => {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) {
+      Alert.alert('Missing code', 'Enter the invite code from your friend.');
+      return;
+    }
+    try {
+      const challenge = await gameService.joinChallenge(code);
+      setMode('multiplayer');
+      setChallenge(challenge);
+      setShowJoinModal(false);
+      setJoinCode('');
+      router.push('/(app)/lobby');
+    } catch (e: any) {
+      Alert.alert('Join failed', e?.response?.data?.message ?? 'Could not join challenge');
+    }
   };
 
   const handleStartMode = async (selectedMode: GameMode) => {
@@ -179,6 +204,23 @@ export default function HomeScreen() {
           ))}
         </View>
       </Modal>
+
+      {/* Join Challenge Modal */}
+      <Modal visible={showJoinModal} onClose={() => { setShowJoinModal(false); setJoinCode(''); }} title="Join Challenge">
+        <View style={styles.modalContent}>
+          <Text style={styles.joinDesc}>Enter the invite code from your friend.</Text>
+          <TextInput
+            style={styles.joinInput}
+            value={joinCode}
+            onChangeText={setJoinCode}
+            placeholder="e.g. AB3F7K"
+            placeholderTextColor={Colors.textDisabled}
+            autoCapitalize="characters"
+            maxLength={8}
+          />
+          <Button label="Join" onPress={handleJoinChallenge} fullWidth size="lg" />
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -215,6 +257,19 @@ const styles = StyleSheet.create({
   activeModeText: { fontSize: FontSize.base, color: Colors.text, fontWeight: FontWeight.medium },
   challengeCode: { fontSize: FontSize.sm, color: Colors.primary, marginTop: 4, fontVariant: ['tabular-nums'] },
   modalContent: { gap: Spacing.sm },
+  joinDesc: { fontSize: FontSize.sm, color: Colors.textMuted },
+  joinInput: {
+    backgroundColor: Colors.surfaceElevated,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    fontSize: FontSize['2xl'],
+    fontWeight: FontWeight.heavy,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    textAlign: 'center',
+    letterSpacing: 6,
+  },
   modeOption: {
     flexDirection: 'row',
     alignItems: 'center',

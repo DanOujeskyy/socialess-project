@@ -40,7 +40,7 @@ export const useTimeStore = create<TimeStore>((set, get) => ({
   maxTime: DEFAULT_MAX_TIME_SECONDS,
   activeEffects: [],
   dailyStats: {
-    date: new Date().toISOString().split('T')[0],
+    date: '',
     clicks: 0,
     squats: 0,
     steps: 0,

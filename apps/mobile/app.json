@@ -19,7 +19,10 @@
       "infoPlist": {
         "NSMotionUsageDescription": "Socialess uses motion data to count your squats and steps to reward you with extra time.",
         "NSHealthShareUsageDescription": "Socialess reads your step count to reward you with extra screen time.",
-        "UIBackgroundModes": ["processing", "fetch"]
+        "UIBackgroundModes": [
+          "processing",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -43,7 +46,9 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#6C5CE7"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

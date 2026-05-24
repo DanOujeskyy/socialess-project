@@ -68,7 +68,7 @@ export async function createChallenge(req: AuthRequest, res: Response, next: Nex
     });
 
     if (mode !== 'singleplayer') {
-      const eventCard = await generateEventCard(undefined, challenge.id);
+      await generateEventCard(undefined, challenge.id);
     }
 
     res.status(201).json(formatChallenge(challenge));
