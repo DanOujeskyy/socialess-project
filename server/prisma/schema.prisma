@@ -1,0 +1,230 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  username       String   @unique
+  passwordHash   String
+  avatar         String?
+  level          Int      @default(1)
+  currentStreak  Int      @default(0)
+  totalStreak    Int      @default(0)
+  lastActiveDate DateTime?
+  gems           Int      @default(0)
+  pushToken      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sessions         PlayerSession[]
+  challengePlayers ChallengePlayer[]
+  hostedChallenges Challenge[]       @relation("ChallengeHost")
+  gameCards        GameCard[]
+  crates           Crate[]
+  notifications    Notification[]
+
+  @@index([email])
+}
+
+model PlayerSession {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime @db.Date
+  currentTime    Int      @default(0)
+  maxTime        Int      @default(6000)
+  clicks         Int      @default(0)
+  squats         Int      @default(0)
+  steps          Int      @default(0)
+  timeEarned     Int      @default(0)
+  timeUsed       Int      @default(0)
+  freeTimeGiven  Boolean  @default(false)
+  crateGiven     Boolean  @default(false)
+  spinUsed       Boolean  @default(false)
+  adCrateUsed    Boolean  @default(false)
+  adSpinUsed     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeEffects ActiveEffect[]
+  eventCard     EventCard?
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model Challenge {
+  id          String          @id @default(cuid())
+  code        String          @unique @default(cuid())
+  mode        GameMode
+  hostId      String
+  status      ChallengeStatus @default(LOBBY)
+  settings    Json
+  penalties   String?
+  createdAt   DateTime        @default(now())
+  startedAt   DateTime?
+  endedAt     DateTime?
+
+  host        User              @relation("ChallengeHost", fields: [hostId], references: [id])
+  players     ChallengePlayer[]
+  eventCards  EventCard[]
+
+  @@index([code])
+  @@index([status])
+}
+
+model ChallengePlayer {
+  id           String    @id @default(cuid())
+  challengeId  String
+  userId       String
+  joinedAt     DateTime  @default(now())
+  isEliminated Boolean   @default(false)
+  eliminatedAt DateTime?
+
+  challenge     Challenge      @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+  activeEffects ActiveEffect[]
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+}
+
+model GameCard {
+  id               String    @id @default(cuid())
+  userId           String
+  type             CardType
+  rarity           Rarity
+  effectValue      Int
+  effectDuration   Int?
+  targetActivity   String?
+  obtainedAt       DateTime  @default(now())
+  usedAt           DateTime?
+  targetPlayerId   String?
+  usedInChallengeId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EventCard {
+  id             String    @id @default(cuid())
+  sessionId      String?   @unique
+  challengeId    String?
+  date           DateTime  @db.Date @default(now())
+  type           CardType
+  rarity         Rarity
+  effectValue    Int
+  effectDuration Int?
+  targetActivity String?
+  isGlobal       Boolean   @default(true)
+  activeUntil    DateTime?
+  isActive       Boolean   @default(true)
+
+  session   PlayerSession? @relation(fields: [sessionId], references: [id])
+  challenge Challenge?     @relation(fields: [challengeId], references: [id])
+
+  @@index([date])
+}
+
+model ActiveEffect {
+  id               String    @id @default(cuid())
+  sessionId        String?
+  challengePlayerId String?
+  cardType         CardType
+  rarity           Rarity
+  value            Int
+  appliedAt        DateTime  @default(now())
+  expiresAt        DateTime?
+  targetActivity   String?
+  appliedById      String?
+  intervalMinutes  Int?
+  lastAppliedAt    DateTime?
+
+  session         PlayerSession?   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  challengePlayer ChallengePlayer? @relation(fields: [challengePlayerId], references: [id])
+
+  @@index([sessionId])
+  @@index([challengePlayerId])
+}
+
+model Crate {
+  id        String    @id @default(cuid())
+  userId    String
+  type      CrateType
+  opened    Boolean   @default(false)
+  openedAt  DateTime?
+  rewardId  String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+enum GameMode {
+  SINGLEPLAYER
+  MULTIPLAYER
+  CUSTOM
+}
+
+enum ChallengeStatus {
+  LOBBY
+  ACTIVE
+  ENDED
+}
+
+enum Rarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+enum CardType {
+  NERF_ACTIVITIES
+  BUFF_ACTIVITIES
+  BAN_ACTIVITY
+  LIMIT_TIME_CAPACITY
+  REDUCE_TIME
+  INCREASE_TIME
+  REDUCE_TIME_FREQUENTLY
+  INCREASE_TIME_FREQUENTLY
+  MORE_GAME_CARDS
+}
+
+enum CrateType {
+  BASIC
+  PREMIUM
+  AD
+}
+
+enum NotificationType {
+  TIME_WARNING
+  CARD_RECEIVED
+  CHALLENGE_INVITE
+  DAILY_REWARD
+  CHALLENGE_STARTED
+  PLAYER_ELIMINATED
+}

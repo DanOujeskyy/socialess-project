@@ -1,0 +1,16 @@
+{
+  "name": "socialess",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "server"
+  ],
+  "scripts": {
+    "mobile": "cd apps/mobile && npx expo start",
+    "server": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:studio": "cd server && npm run db:studio"
+  }
+}
