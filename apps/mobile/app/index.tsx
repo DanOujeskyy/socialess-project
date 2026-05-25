@@ -14,7 +14,7 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={isAuthenticated ? '/(app)/(tabs)/' : '/(auth)/login'} />;
+  return <Redirect href={isAuthenticated ? '/(app)/(tabs)' : '/(auth)/login'} />;
 }
 
 const styles = StyleSheet.create({

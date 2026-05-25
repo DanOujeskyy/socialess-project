@@ -10,6 +10,8 @@ interface AuthStore {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
+  googleLogin: (accessToken: string) => Promise<void>;
+  appleLogin: (identityToken: string, fullName?: { givenName?: string | null; familyName?: string | null } | null) => Promise<void>;
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
@@ -28,7 +30,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { user } = await authService.login({ email, password });
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      set({ error: err?.response?.data?.message ?? 'Login failed', isLoading: false });
+      set({ error: err?.response?.data?.message ?? 'Sign in failed. Please try again.', isLoading: false });
       throw err;
     }
   },
@@ -39,7 +41,29 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { user } = await authService.register({ email, username, password });
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      set({ error: err?.response?.data?.message ?? 'Registration failed', isLoading: false });
+      set({ error: err?.response?.data?.message ?? 'Registration failed. Please try again.', isLoading: false });
+      throw err;
+    }
+  },
+
+  googleLogin: async (accessToken) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { user } = await authService.googleLogin({ accessToken });
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (err: any) {
+      set({ error: err?.response?.data?.message ?? 'Google sign-in failed. Please try again.', isLoading: false });
+      throw err;
+    }
+  },
+
+  appleLogin: async (identityToken, fullName) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { user } = await authService.appleLogin({ identityToken, fullName });
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (err: any) {
+      set({ error: err?.response?.data?.message ?? 'Apple sign-in failed. Please try again.', isLoading: false });
       throw err;
     }
   },

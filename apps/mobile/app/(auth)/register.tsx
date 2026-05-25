@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,90 +8,173 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/store/auth.store';
 import { Button } from '../../src/components/ui/Button';
+import { FormField } from '../../src/components/ui/FormField';
+import { PasswordInput } from '../../src/components/ui/PasswordInput';
+import { SocialAuthButtons } from '../../src/components/auth/SocialAuthButtons';
+import {
+  validateEmail,
+  validateUsername,
+  validatePassword,
+  validatePasswordConfirm,
+} from '../../src/validation/auth';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../../src/theme';
+
+type Fields = { email: boolean; username: boolean; password: boolean; confirm: boolean };
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
-  const [email, setEmail]         = useState('');
-  const [username, setUsername]   = useState('');
-  const [password, setPassword]   = useState('');
-  const [confirm, setConfirm]     = useState('');
-  const { register, isLoading, error, clearError } = useAuthStore();
+  const [email, setEmail]       = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm]   = useState('');
+  const [touched, setTouched]   = useState<Fields>({ email: false, username: false, password: false, confirm: false });
+
+  const usernameRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmRef  = useRef<TextInput>(null);
+
+  const { register, googleLogin, appleLogin, isLoading, error, clearError } = useAuthStore();
+
+  const emailError    = touched.email    ? validateEmail(email)                          : null;
+  const usernameError = touched.username ? validateUsername(username)                    : null;
+  const passwordError = touched.password ? validatePassword(password)                   : null;
+  const confirmError  = touched.confirm  ? validatePasswordConfirm(password, confirm)   : null;
+
+  const touch = (field: keyof Fields) => setTouched(t => ({ ...t, [field]: true }));
+  const touchAll = () => setTouched({ email: true, username: true, password: true, confirm: true });
 
   const handleRegister = async () => {
-    if (!email.trim() || !username.trim() || !password.trim()) {
-      Alert.alert('Missing fields', 'Please fill in all fields.');
-      return;
-    }
-    if (password !== confirm) {
-      Alert.alert('Password mismatch', 'Passwords do not match.');
-      return;
-    }
-    if (password.length < 8) {
-      Alert.alert('Weak password', 'Password must be at least 8 characters.');
-      return;
-    }
+    touchAll();
+    const eErr = validateEmail(email);
+    const uErr = validateUsername(username);
+    const pErr = validatePassword(password);
+    const cErr = validatePasswordConfirm(password, confirm);
+    if (eErr || uErr || pErr || cErr) return;
+    clearError();
     try {
       await register(email.trim().toLowerCase(), username.trim(), password);
-      router.replace('/(app)/(tabs)/');
-    } catch {
-      // Error shown via store
-    }
+      router.replace('/(app)/(tabs)' as any);
+    } catch { /* error shown via store */ }
+  };
+
+  const handleGoogleAuth = async (accessToken: string) => {
+    clearError();
+    try {
+      await googleLogin(accessToken);
+      router.replace('/(app)/(tabs)' as any);
+    } catch { /* error shown via store */ }
+  };
+
+  const handleAppleAuth = async (identityToken: string, fullName: any) => {
+    clearError();
+    try {
+      await appleLogin(identityToken, fullName);
+      router.replace('/(app)/(tabs)' as any);
+    } catch { /* error shown via store */ }
   };
 
   return (
-    <LinearGradient colors={[Colors.background, '#0D0D1A']} style={styles.gradient}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+    <LinearGradient colors={['#0A0A0F', '#0D0A1A']} style={styles.gradient}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flex}
+      >
         <ScrollView
-          contentContainerStyle={[styles.container, { paddingTop: insets.top + Spacing.xl }]}
+          contentContainerStyle={[
+            styles.container,
+            { paddingTop: insets.top + Spacing.lg, paddingBottom: insets.bottom + Spacing['2xl'] },
+          ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
+          {/* Back */}
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>← Back</Text>
+            <Ionicons name="arrow-back" size={22} color={Colors.primary} />
+            <Text style={styles.backText}>Sign In</Text>
           </TouchableOpacity>
 
+          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join and start your digital detox journey</Text>
+            <Text style={styles.subtitle}>Join Socialess and take control of your screen time</Text>
           </View>
 
-          <View style={styles.form}>
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity onPress={clearError}><Text style={styles.errorClose}>✕</Text></TouchableOpacity>
-              </View>
-            )}
+          {/* Server error banner */}
+          {error && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{error}</Text>
+              <TouchableOpacity onPress={clearError} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.errorBannerClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
-            {(
-              [
-                { label: 'Email',           value: email,    setter: setEmail,    type: 'email-address', secure: false, placeholder: 'your@email.com' },
-                { label: 'Username',        value: username, setter: setUsername, type: 'default',       secure: false, placeholder: 'your_username' },
-                { label: 'Password',        value: password, setter: setPassword, type: 'default',       secure: true,  placeholder: '••••••••' },
-                { label: 'Confirm Password',value: confirm,  setter: setConfirm,  type: 'default',       secure: true,  placeholder: '••••••••' },
-              ] as const
-            ).map(({ label, value, setter, type, secure, placeholder }) => (
-              <View key={label} style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>{label}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={value}
-                  onChangeText={setter as (v: string) => void}
-                  keyboardType={type as any}
-                  autoCapitalize="none"
-                  secureTextEntry={secure}
-                  placeholderTextColor={Colors.textDisabled}
-                  placeholder={placeholder}
-                />
-              </View>
-            ))}
+          {/* Form */}
+          <View style={styles.form}>
+            <FormField
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              error={emailError}
+              touched={touched.email}
+              placeholder="your@email.com"
+              keyboardType="email-address"
+              autoComplete="email"
+              returnKeyType="next"
+              onBlur={() => touch('email')}
+              onSubmitEditing={() => usernameRef.current?.focus()}
+            />
+
+            <FormField
+              label="Username"
+              value={username}
+              onChangeText={setUsername}
+              error={usernameError}
+              touched={touched.username}
+              placeholder="your_username"
+              autoComplete="username"
+              returnKeyType="next"
+              hint="3–20 characters, letters, numbers, and underscores"
+              onBlur={() => touch('username')}
+              onSubmitEditing={() => passwordRef.current?.focus()}
+              inputRef={usernameRef}
+            />
+
+            <PasswordInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              error={passwordError}
+              touched={touched.password}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              returnKeyType="next"
+              showStrength
+              onBlur={() => touch('password')}
+              onSubmitEditing={() => confirmRef.current?.focus()}
+              inputRef={passwordRef}
+            />
+
+            <PasswordInput
+              label="Confirm Password"
+              value={confirm}
+              onChangeText={setConfirm}
+              error={confirmError}
+              touched={touched.confirm}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              returnKeyType="done"
+              onBlur={() => touch('confirm')}
+              onSubmitEditing={handleRegister}
+              inputRef={confirmRef}
+            />
 
             <Button
               label="Create Account"
@@ -102,9 +185,18 @@ export default function RegisterScreen() {
               style={styles.submitBtn}
             />
 
+            <Divider />
+
+            <SocialAuthButtons
+              onGoogleAuth={handleGoogleAuth}
+              onAppleAuth={handleAppleAuth}
+              disabled={isLoading}
+            />
+
             <TouchableOpacity onPress={() => router.back()} style={styles.switchLink}>
               <Text style={styles.switchText}>
-                Already have an account? <Text style={styles.switchHighlight}>Sign In</Text>
+                Already have an account?{' '}
+                <Text style={styles.switchHighlight}>Sign In</Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -114,39 +206,50 @@ export default function RegisterScreen() {
   );
 }
 
+function Divider() {
+  return (
+    <View style={dividerStyles.row}>
+      <View style={dividerStyles.line} />
+      <Text style={dividerStyles.label}>or continue with</Text>
+      <View style={dividerStyles.line} />
+    </View>
+  );
+}
+
+const dividerStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  line: { flex: 1, height: 1, backgroundColor: Colors.border },
+  label: { fontSize: FontSize.xs, color: Colors.textMuted, fontWeight: FontWeight.medium },
+});
+
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   flex: { flex: 1 },
-  container: { flexGrow: 1, padding: Spacing.xl },
-  backBtn: { marginBottom: Spacing.base },
-  backText: { fontSize: FontSize.base, color: Colors.primary },
+  container: { flexGrow: 1, paddingHorizontal: Spacing.xl },
+
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs, marginBottom: Spacing.xl },
+  backText: { fontSize: FontSize.base, color: Colors.primary, fontWeight: FontWeight.medium },
+
   header: { marginBottom: Spacing['2xl'] },
   title: { fontSize: FontSize['3xl'], fontWeight: FontWeight.heavy, color: Colors.text, marginBottom: Spacing.xs },
-  subtitle: { fontSize: FontSize.base, color: Colors.textMuted },
-  form: { gap: Spacing.md },
-  errorBox: {
-    backgroundColor: Colors.danger + '22',
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
+  subtitle: { fontSize: FontSize.base, color: Colors.textMuted, lineHeight: 22 },
+
+  errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.danger + '1A',
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.danger + '44',
-  },
-  errorText: { flex: 1, color: Colors.danger, fontSize: FontSize.sm },
-  errorClose: { color: Colors.danger, fontSize: FontSize.base, paddingLeft: Spacing.sm },
-  inputGroup: { gap: Spacing.xs },
-  inputLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.medium, color: Colors.textSecondary },
-  input: {
-    backgroundColor: Colors.surfaceElevated,
-    borderRadius: Radius.lg,
     padding: Spacing.base,
-    fontSize: FontSize.base,
-    color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginBottom: Spacing.base,
+    gap: Spacing.sm,
   },
-  submitBtn: { marginTop: Spacing.sm },
+  errorBannerText: { flex: 1, color: Colors.danger, fontSize: FontSize.sm, lineHeight: 18 },
+  errorBannerClose: { color: Colors.danger, fontSize: FontSize.base },
+
+  form: { gap: Spacing.base },
+  submitBtn: { marginTop: Spacing.xs },
   switchLink: { alignItems: 'center', paddingVertical: Spacing.sm },
   switchText: { fontSize: FontSize.sm, color: Colors.textMuted },
   switchHighlight: { color: Colors.primary, fontWeight: FontWeight.semibold },

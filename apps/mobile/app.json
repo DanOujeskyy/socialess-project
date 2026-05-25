@@ -19,6 +19,7 @@
       "infoPlist": {
         "NSMotionUsageDescription": "Socialess uses motion data to count your squats and steps to reward you with extra time.",
         "NSHealthShareUsageDescription": "Socialess reads your step count to reward you with extra screen time.",
+        "NSCameraUsageDescription": "Socialess uses the camera to detect your push-ups and squats and count your reps.",
         "UIBackgroundModes": [
           "processing",
           "fetch"
@@ -35,11 +36,13 @@
         "android.permission.ACTIVITY_RECOGNITION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.FOREGROUND_SERVICE"
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [
       "expo-router",
+      "expo-camera",
       [
         "expo-notifications",
         {
@@ -48,7 +51,9 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

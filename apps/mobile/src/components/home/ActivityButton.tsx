@@ -1,77 +1,63 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../../theme';
 import { useTimeStore } from '../../store/time.store';
-import { activitiesService } from '../../services/activities.service';
 import type { ActivityType } from '../../types';
 
 interface ActivityConfig {
   type: ActivityType;
   icon: string;
   label: string;
-  tapLabel?: string;
+  subLabel: string;
 }
 
 const ACTIVITIES: ActivityConfig[] = [
-  { type: 'squats',  icon: '🏋️', label: 'Squats',  tapLabel: 'Tap = 1 Squat' },
-  { type: 'clicks',  icon: '👆', label: 'Clicks',  tapLabel: 'Tap = 1 Click' },
+  { type: 'squats', icon: '🏋️', label: 'Dřepy', subLabel: 'Kamera' },
+  { type: 'clicks', icon: '💪', label: 'Kliky',  subLabel: 'Kamera' },
 ];
 
-interface ActivityButtonProps {
-  activity: ActivityConfig;
-}
+function SingleActivityButton({ activity }: { activity: ActivityConfig }) {
+  const { dailyStats, isBanned, getEffectiveActivityRate } = useTimeStore();
+  const banned = isBanned(activity.type as 'clicks' | 'squats');
 
-function SingleActivityButton({ activity }: ActivityButtonProps) {
-  const [count, setCount] = useState(0);
-  const [syncing, setSyncing] = useState(false);
-  const { addTime, incrementClicks, incrementSquats, isBanned, getEffectiveActivityRate } = useTimeStore();
+  const count = activity.type === 'clicks' ? dailyStats.clicks : dailyStats.squats;
+  const rate  = getEffectiveActivityRate(
+    activity.type === 'steps' ? 'stepsPerThousand' : (activity.type as 'clicks' | 'squats'),
+  );
 
-  const banned = isBanned(activity.type);
-
-  const handleTap = useCallback(async () => {
+  const handlePress = () => {
     if (banned) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Banned', `You cannot earn time from ${activity.label} right now.`);
+      Alert.alert('Zakázáno', `Nyní nemůžeš vydělávat čas z ${activity.label}.`);
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const newCount = count + 1;
-    setCount(newCount);
-
-    // Batch sync every 5 taps or after debounce
-    if (newCount % 5 === 0) {
-      setSyncing(true);
-      try {
-        const result = await activitiesService[
-          activity.type === 'clicks' ? 'recordClicks' : 'recordSquats'
-        ](5);
-        addTime(result.secondsAdded);
-        if (activity.type === 'clicks')  incrementClicks(5);
-        if (activity.type === 'squats')  incrementSquats(5);
-      } catch {
-        // Store pending, retry later
-      } finally {
-        setSyncing(false);
-      }
-    }
-  }, [count, banned, activity]);
-
-  const rate = getEffectiveActivityRate(
-    activity.type === 'steps' ? 'stepsPerThousand' : activity.type,
-  );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({
+      pathname: '/(app)/exercise',
+      params: { type: activity.type },
+    });
+  };
 
   return (
     <TouchableOpacity
       style={[styles.button, banned && styles.banned]}
-      onPress={handleTap}
-      activeOpacity={0.7}
+      onPress={handlePress}
+      activeOpacity={0.75}
     >
       <Text style={styles.icon}>{activity.icon}</Text>
       <Text style={styles.count}>{count}</Text>
       <Text style={styles.label}>{activity.label}</Text>
-      <Text style={styles.rate}>+{rate.toFixed(0)}s each</Text>
-      {banned && <View style={styles.banOverlay}><Text style={styles.banText}>BANNED</Text></View>}
+      <View style={styles.cameraRow}>
+        <Text style={styles.cameraIcon}>📷</Text>
+        <Text style={styles.rate}>+{rate.toFixed(0)}s / rep</Text>
+      </View>
+      {banned && (
+        <View style={styles.banOverlay}>
+          <Text style={styles.banText}>ZAKÁZÁNO</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -96,27 +82,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.border,
-    minHeight: 110,
+    minHeight: 120,
     justifyContent: 'center',
     gap: 4,
     position: 'relative',
     overflow: 'hidden',
   },
   banned: { opacity: 0.5 },
-  icon: { fontSize: 28 },
+  icon:  { fontSize: 28 },
   count: {
     fontSize: FontSize['2xl'],
     fontWeight: FontWeight.heavy,
     color: Colors.text,
     fontVariant: ['tabular-nums'],
   },
-  label: { fontSize: FontSize.sm, color: Colors.textSecondary, fontWeight: FontWeight.medium },
-  rate: { fontSize: FontSize.xs, color: Colors.success },
+  label: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
+  },
+  cameraRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+  cameraIcon: { fontSize: 10 },
+  rate:  { fontSize: FontSize.xs, color: Colors.success },
   banOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  banText: { color: Colors.danger, fontSize: FontSize.sm, fontWeight: FontWeight.bold, letterSpacing: 1 },
+  banText: {
+    color: Colors.danger,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.bold,
+    letterSpacing: 1,
+  },
 });

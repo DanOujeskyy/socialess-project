@@ -17,6 +17,10 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="lobby" />
       <Stack.Screen name="settings" />
+      <Stack.Screen
+        name="exercise"
+        options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+      />
     </Stack>
   );
 }

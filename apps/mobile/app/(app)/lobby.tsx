@@ -31,8 +31,8 @@ export default function LobbyScreen() {
   const players = challenge?.players ?? [];
 
   useEffect(() => {
-    if (!challenge) { router.replace('/(app)/(tabs)/'); return; }
-    if (challenge.status === 'active') router.replace('/(app)/(tabs)/');
+    if (!challenge) { router.replace('/(app)/(tabs)'); return; }
+    if (challenge.status === 'active') router.replace('/(app)/(tabs)');
   }, [challenge]);
 
   const handleShare = async () => {
@@ -49,7 +49,7 @@ export default function LobbyScreen() {
     try {
       await gameService.startChallenge(challenge.id);
       updateChallenge({ status: 'active' });
-      router.replace('/(app)/(tabs)/');
+      router.replace('/(app)/(tabs)');
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.message ?? 'Could not start game');
     }
@@ -68,7 +68,7 @@ export default function LobbyScreen() {
           onPress: async () => {
             if (challenge) await gameService.leaveChallenge(challenge.id);
             leaveGame();
-            router.replace('/(app)/(tabs)/');
+            router.replace('/(app)/(tabs)');
           },
         },
       ],

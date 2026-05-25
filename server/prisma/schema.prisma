@@ -8,19 +8,23 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  username       String   @unique
-  passwordHash   String
+  id             String    @id @default(cuid())
+  email          String    @unique
+  username       String    @unique
+  passwordHash   String?
+  provider       String?
+  providerId     String?
   avatar         String?
-  level          Int      @default(1)
-  currentStreak  Int      @default(0)
-  totalStreak    Int      @default(0)
+  level          Int       @default(1)
+  currentStreak  Int       @default(0)
+  totalStreak    Int       @default(0)
   lastActiveDate DateTime?
-  gems           Int      @default(0)
+  gems           Int       @default(0)
   pushToken      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  resetCode      String?
+  resetCodeExpiry DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   sessions         PlayerSession[]
   challengePlayers ChallengePlayer[]
@@ -29,6 +33,7 @@ model User {
   crates           Crate[]
   notifications    Notification[]
 
+  @@unique([provider, providerId])
   @@index([email])
 }
 
