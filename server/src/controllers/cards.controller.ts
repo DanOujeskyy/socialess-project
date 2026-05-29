@@ -18,7 +18,7 @@ export async function useCard(req: AuthRequest, res: Response, next: NextFunctio
   try {
     const { targetPlayerId } = req.body as { targetPlayerId: string };
     const card = await prisma.gameCard.findFirst({
-      where: { id: req.params.id, userId: req.userId!, usedAt: null },
+      where: { id: req.params.id as string, userId: req.userId!, usedAt: null },
     });
     if (!card) throw new AppError('Card not found or already used', 404);
 

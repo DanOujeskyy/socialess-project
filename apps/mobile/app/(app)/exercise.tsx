@@ -81,23 +81,23 @@ function pColor(phase: RepPhase): string {
 }
 function pLabel(phase: RepPhase): string {
   switch (phase) {
-    case 'idle':       return 'Připravit se…';
-    case 'standing':   return 'PŘIPRAVEN  ✓';
-    case 'descending': return 'DOLŮ  ↓';
-    case 'down':       return 'DOLE  ✓';
-    case 'ascending':  return 'NAHORU  ↑';
+    case 'idle':       return 'Get Ready…';
+    case 'standing':   return 'READY  ✓';
+    case 'descending': return 'DOWN  ↓';
+    case 'down':       return 'BOTTOM  ✓';
+    case 'ascending':  return 'UP  ↑';
   }
 }
 
 // ─── Exercise config ──────────────────────────────────────────────────────────
 const CONFIGS = {
   clicks: {
-    label: 'Kliky', emoji: '💪',
-    hint: 'Lehněte si do polohy kliku. Telefon dejte zboku na zem — kamera musí vidět ramena a ruce.',
+    label: 'Push ups', emoji: '🤸',
+    hint: 'Lie down in push-up position. Place the phone on the floor to the side — the camera must see your shoulders and hands.',
   },
   squats: {
-    label: 'Dřepy', emoji: '🏋️',
-    hint: 'Postavte se čelem ke kameře. Telefon by měl být ve výšce boků — celé tělo musí být vidět.',
+    label: 'Squats', emoji: '🏋️',
+    hint: 'Stand facing the camera. Place the phone at hip height — your full body must be visible.',
   },
 } as const;
 
@@ -195,14 +195,19 @@ export default function ExerciseScreen() {
   const colorSv = useMemo(() => makeMutable(pColor('idle')), []);
 
   // ── Map pose keypoints to screen SharedValues ────────────────────────────────
-  const applyPose = useCallback((pose: Pose, imgW: number, imgH: number, phase: RepPhase) => {
+  // flipX = true  → snapshot path (capture is not mirrored, preview is → we flip)
+  // flipX = false → GL texture path (texture already matches the mirrored preview)
+  const applyPose = useCallback((
+    pose: Pose, imgW: number, imgH: number, phase: RepPhase, flipX = true,
+  ) => {
     const sx = SCREEN_W / imgW;
     const sy = SCREEN_H / imgH;
     pose.keypoints.forEach((kp, i) => {
       const vis = (kp.score ?? 0) > 0.25;
       kpSV[i].v.value = vis;
       if (vis) {
-        kpSV[i].x.value = withSpring(SCREEN_W - kp.x * sx, SP);  // mirror X (front cam)
+        const x = flipX ? SCREEN_W - kp.x * sx : kp.x * sx;
+        kpSV[i].x.value = withSpring(x, SP);
         kpSV[i].y.value = withSpring(kp.y * sy, SP);
       }
     });
@@ -234,8 +239,8 @@ export default function ExerciseScreen() {
         await initPoseDetector(p => { if (!dead) setProgress(p); });
         if (!dead) startCountdown();
       } catch {
-        if (!dead) Alert.alert('Chyba', 'AI model se nepodařilo načíst.', [
-          { text: 'Zpět', onPress: () => router.back() },
+        if (!dead) Alert.alert('Error', 'Could not load the AI model.', [
+          { text: 'Go Back', onPress: () => router.back() },
         ]);
       }
     })();
@@ -327,7 +332,8 @@ export default function ExerciseScreen() {
                   const c = pose.keypoints.slice(5, 17)
                     .reduce((s, kp) => s + (kp.score ?? 0), 0) / 12;
                   setConf(c);
-                  applyPose(pose, INFER_W, INFER_H, stateRef.current.phase);
+                  // GL texture is already mirrored (matches the live preview) → no flip
+                  applyPose(pose, INFER_W, INFER_H, stateRef.current.phase, false);
                 }
               })
               .catch(() => {
@@ -415,9 +421,9 @@ export default function ExerciseScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     } catch {
-      Alert.alert('Chyba při ukládání', 'Zkus to znovu.', [
-        { text: 'Znovu', onPress: submit },
-        { text: 'Zahodit', style: 'destructive', onPress: () => router.back() },
+      Alert.alert('Save Error', 'Please try again.', [
+        { text: 'Retry', onPress: submit },
+        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
       ]);
     } finally { setSyncing(false); }
   }, [exType, addTime, incrementClicks, incrementSquats]);
@@ -428,7 +434,7 @@ export default function ExerciseScreen() {
   const skeletonOn = screen === 'countdown' || screen === 'tracking';
   const pc        = pColor(display.phase);
   const confColor = conf > 0.55 ? '#22C55E' : conf > 0.28 ? '#FB923C' : '#EF4444';
-  const confLabel = conf > 0.55 ? 'Dobrý záběr' : conf > 0.28 ? 'Slabý záběr' : 'Nevidím tě';
+  const confLabel = conf > 0.55 ? 'Good Shot' : conf > 0.28 ? 'Weak Shot' : "Can't See You";
 
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -500,7 +506,7 @@ export default function ExerciseScreen() {
           <View style={s.barTrack}>
             <View style={[s.barFill, { width: `${Math.round(progress * 100)}%` }]} />
           </View>
-          <Text style={s.muted}>Načítám AI model… {Math.round(progress * 100)}%</Text>
+          <Text style={s.muted}>Loading AI model… {Math.round(progress * 100)}%</Text>
         </View>
       )}
 
@@ -508,13 +514,13 @@ export default function ExerciseScreen() {
       {screen === 'permission' && (
         <View style={s.center}>
           <Text style={s.emoji}>📸</Text>
-          <Text style={s.h1}>Přístup ke kameře</Text>
-          <Text style={s.body}>Kamera je potřeba pro sledování pohybu a počítání opakování.</Text>
+          <Text style={s.h1}>Camera Access</Text>
+          <Text style={s.body}>Camera access is needed to track your movement and count reps.</Text>
           <TouchableOpacity style={s.btn} onPress={requestPermission}>
-            <Text style={s.btnText}>Povolit kameru</Text>
+            <Text style={s.btnText}>Allow Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={s.muted}>Zpět</Text>
+            <Text style={s.muted}>Go Back</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -554,7 +560,7 @@ export default function ExerciseScreen() {
           {/* Rep counter */}
           <View style={[s.repBlock, { bottom: insets.bottom + 86 }]} pointerEvents="none">
             <Text style={s.repNum}>{display.repCount}</Text>
-            <Text style={s.repLbl}>opakování</Text>
+            <Text style={s.repLbl}>reps</Text>
             {display.repCount > 0 && (
               <View style={s.earnPill}>
                 <Text style={s.earnTxt}>+{earned}s screentime</Text>
@@ -565,7 +571,7 @@ export default function ExerciseScreen() {
           {/* Anti-cheat warning */}
           {display.isInvalidated && (
             <View style={[s.bubble, s.bubbleWarn]} pointerEvents="none">
-              <Text style={s.bubbleWarnTxt}>⚠️  Příliš rychle nebo malý rozsah pohybu</Text>
+              <Text style={s.bubbleWarnTxt}>⚠️  Too fast or insufficient range of motion</Text>
             </View>
           )}
 
@@ -579,7 +585,7 @@ export default function ExerciseScreen() {
           {/* Done button */}
           <View style={[s.btmBar, { paddingBottom: insets.bottom + 10 }]}>
             <TouchableOpacity style={s.doneBtn} onPress={finish}>
-              <Text style={s.doneTxt}>Hotovo</Text>
+              <Text style={s.doneTxt}>Done</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -593,13 +599,13 @@ export default function ExerciseScreen() {
         >
           <Text style={s.emoji}>{cfg.emoji}</Text>
           <Text style={s.h1}>{cfg.label}</Text>
-          <Text style={s.resultsSub}>Výsledky tréninku</Text>
+          <Text style={s.resultsSub}>Workout Results</Text>
 
           <View style={s.card}>
             <View style={s.cardAccent} />
             <Text style={s.bigNum}>{display.repCount}</Text>
             <Text style={s.cardLbl}>
-              {display.repCount === 1 ? 'ověřené opakování' : 'ověřených opakování'}
+              {display.repCount === 1 ? 'verified rep' : 'verified reps'}
             </Text>
             {display.repCount > 0 && (
               <View style={s.cardEarnPill}>
@@ -610,8 +616,8 @@ export default function ExerciseScreen() {
 
           {display.repCount === 0 && (
             <Text style={s.zeroHint}>
-              Žádné opakování nebylo zaznamenáno.{'\n'}
-              Ujistěte se, že kamera vidí celé tělo, a zkuste znovu.
+              No reps were recorded.{'\n'}
+              Make sure the camera can see your full body and try again.
             </Text>
           )}
 
@@ -624,13 +630,13 @@ export default function ExerciseScreen() {
               >
                 {syncing
                   ? <ActivityIndicator color="#FFF" size="small" />
-                  : <Text style={s.saveTxt}>Uložit  +{earned}s  ✓</Text>
+                  : <Text style={s.saveTxt}>Save  +{earned}s  ✓</Text>
                 }
               </TouchableOpacity>
             )}
             <TouchableOpacity style={s.discardBtn} onPress={() => router.back()}>
               <Text style={s.discardTxt}>
-                {display.repCount === 0 ? 'Zpět' : 'Zahodit'}
+                {display.repCount === 0 ? 'Go Back' : 'Discard'}
               </Text>
             </TouchableOpacity>
           </View>

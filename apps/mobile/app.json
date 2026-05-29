@@ -16,6 +16,9 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.socialess.app",
+      "entitlements": {
+        "com.apple.developer.family-controls": true
+      },
       "infoPlist": {
         "NSMotionUsageDescription": "Socialess uses motion data to count your squats and steps to reward you with extra time.",
         "NSHealthShareUsageDescription": "Socialess reads your step count to reward you with extra screen time.",
@@ -23,6 +26,13 @@
         "UIBackgroundModes": [
           "processing",
           "fetch"
+        ],
+        "LSApplicationQueriesSchemes": [
+          "instagram",
+          "youtube",
+          "snapchat",
+          "tiktok",
+          "fb"
         ]
       }
     },

@@ -1,10 +1,18 @@
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
-export type GameMode = 'singleplayer' | 'multiplayer' | 'custom';
+export type GameMode = 'singleplayer' | 'multiplayer' | 'ranked' | 'custom';
+export type RankTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+export type MatchmakingStatus = 'idle' | 'queued' | 'matched' | 'cancelled';
+
+export function isCompetitiveMode(mode: GameMode | null): boolean {
+  return mode === 'multiplayer' || mode === 'ranked';
+}
 export type ActivityType = 'clicks' | 'squats' | 'steps';
 export type SocialApp = 'instagram' | 'youtube' | 'snapchat' | 'tiktok' | 'facebook';
 export type ChallengeStatus = 'lobby' | 'active' | 'ended';
 
-export type CardType =
+// Event cards affect all players in the game (triggered automatically).
+// more_game_cards is exclusive to event cards.
+export type EventCardType =
   | 'nerf_activities'
   | 'buff_activities'
   | 'ban_activity'
@@ -15,6 +23,12 @@ export type CardType =
   | 'increase_time_frequently'
   | 'more_game_cards';
 
+// Game cards are used by a player against a specific target in multiplayer.
+export type GameCardType = Exclude<EventCardType, 'more_game_cards'>;
+
+// Full union kept for shared lookup tables (CARD_VALUES, CARD_NAMES, etc.)
+export type CardType = EventCardType;
+
 export interface CardEffect {
   type: CardType;
   rarity: Rarity;
@@ -23,9 +37,11 @@ export interface CardEffect {
   targetActivity?: ActivityType;
 }
 
+// Held in a player's hand during an active multiplayer game.
+// Cleared when the game ends (win or lose).
 export interface GameCard {
   id: string;
-  type: CardType;
+  type: GameCardType;
   rarity: Rarity;
   effect: CardEffect;
   obtainedAt: string;
@@ -33,9 +49,10 @@ export interface GameCard {
   targetPlayerId?: string;
 }
 
+// Applied automatically to all players by a game event.
 export interface EventCard {
   id: string;
-  type: CardType;
+  type: EventCardType;
   rarity: Rarity;
   effect: CardEffect;
   date: string;
@@ -89,19 +106,61 @@ export interface PlayerState {
   dailyStats: DailyStats;
   streak: number;
   isEliminated: boolean;
+  placement?: number;
+  pointsChange?: number;
+  rankPoints?: number;
+  rankTier?: RankTier;
+}
+
+// Penalty assigned to a specific placement (placement 1 = winner, never penalised)
+export interface PenaltyRule {
+  placement: number;   // 2, 3, 4, …
+  description: string; // e.g. "50 push-ups"
 }
 
 export interface ChallengeSettings {
   startingTime: number; // seconds
   maxTime: number; // seconds
+  startingCards: number; // cards per player at start (0-3)
+  eliminationThreshold: number; // seconds; 0 = eliminated when time hits 0
   enabledCardTypes: CardType[];
   trackedApps: SocialApp[];
   activityRates: {
-    clicks: number; // seconds per click
-    squats: number; // seconds per squat
-    stepsPerThousand: number; // seconds per 1000 steps
+    clicks: number;
+    squats: number;
+    stepsPerThousand: number;
   };
-  penalties?: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar?: string;
+  rankPoints: number;
+  rankTier: RankTier;
+  rankedWins: number;
+  rankedLosses: number;
+  level?: number;
+  weeklyWins?: number;
+}
+
+export interface GamePlayerResult {
+  userId: string;
+  username: string;
+  placement: number;
+  currentTime: number;
+  pointsChange: number | null;
+  rankPoints: number;
+  rankTier: RankTier;
+}
+
+export interface GameResults {
+  challengeId: string;
+  mode: GameMode;
+  players: GamePlayerResult[];
+  penalties?: PenaltyRule[] | null;
+  endedAt: string;
 }
 
 export interface Challenge {
@@ -112,6 +171,7 @@ export interface Challenge {
   players: PlayerState[];
   status: ChallengeStatus;
   settings: ChallengeSettings;
+  penalties?: PenaltyRule[] | null; // placement-based penalties, stored as JSON string server-side
   createdAt: string;
   startedAt?: string;
   endedAt?: string;
@@ -142,6 +202,18 @@ export interface ShopItem {
   rarity?: Rarity;
   limitPerDay?: number;
   purchasedToday?: number;
+}
+
+export interface PassReward {
+  day:        number;
+  kind:       'time' | 'card' | 'crate';
+  icon:       string;
+  label:      string;      // short display  e.g. "+10m", "Rare", "Basic"
+  sublabel:   string;      // full display   e.g. "+10 Minutes", "Rare Card", "Basic Crate"
+  color:      string;
+  seconds?:   number;      // for kind === 'time'
+  rarity?:    Rarity;      // for kind === 'card'
+  crateType?: 'basic' | 'premium'; // for kind === 'crate'
 }
 
 export interface AuthTokens {

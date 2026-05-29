@@ -14,8 +14,8 @@ interface ActivityConfig {
 }
 
 const ACTIVITIES: ActivityConfig[] = [
-  { type: 'squats', icon: '🏋️', label: 'Dřepy', subLabel: 'Kamera' },
-  { type: 'clicks', icon: '💪', label: 'Kliky',  subLabel: 'Kamera' },
+  { type: 'squats', icon: '🏋️', label: 'Squats', subLabel: 'Camera' },
+  { type: 'clicks', icon: '🤸', label: 'Push Ups', subLabel: 'Camera' },
 ];
 
 function SingleActivityButton({ activity }: { activity: ActivityConfig }) {
@@ -30,7 +30,7 @@ function SingleActivityButton({ activity }: { activity: ActivityConfig }) {
   const handlePress = () => {
     if (banned) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Zakázáno', `Nyní nemůžeš vydělávat čas z ${activity.label}.`);
+      Alert.alert('Banned', `You can't earn time from ${activity.label} right now.`);
       return;
     }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -55,7 +55,7 @@ function SingleActivityButton({ activity }: { activity: ActivityConfig }) {
       </View>
       {banned && (
         <View style={styles.banOverlay}>
-          <Text style={styles.banText}>ZAKÁZÁNO</Text>
+          <Text style={styles.banText}>BANNED</Text>
         </View>
       )}
     </TouchableOpacity>

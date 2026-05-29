@@ -8,6 +8,8 @@ import { StyleSheet } from 'react-native';
 import { useAuthStore } from '../src/store/auth.store';
 import { useNotifications } from '../src/hooks/useNotifications';
 import { useDailyReset } from '../src/hooks/useDailyReset';
+import { useSocialTracking } from '../src/hooks/useSocialTracking';
+import { useScreenTimeBlocking } from '../src/hooks/useScreenTimeBlocking';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 2 } },
@@ -16,6 +18,8 @@ const queryClient = new QueryClient({
 function AppInit() {
   useNotifications();
   useDailyReset();
+  useSocialTracking();
+  useScreenTimeBlocking();
   const loadUser = useAuthStore((s) => s.loadUser);
   useEffect(() => { loadUser(); }, []);
   return null;

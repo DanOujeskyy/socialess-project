@@ -20,6 +20,11 @@ model User {
   totalStreak    Int       @default(0)
   lastActiveDate DateTime?
   gems           Int       @default(0)
+  rankPoints     Int       @default(0)
+  rankTier       RankTier  @default(BRONZE)
+  rankedWins     Int       @default(0)
+  rankedLosses   Int       @default(0)
+  isBot          Boolean   @default(false)
   pushToken      String?
   resetCode      String?
   resetCodeExpiry DateTime?
@@ -91,6 +96,9 @@ model ChallengePlayer {
   joinedAt     DateTime  @default(now())
   isEliminated Boolean   @default(false)
   eliminatedAt DateTime?
+
+  placement     Int?
+  pointsChange  Int?
 
   challenge     Challenge      @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id])
@@ -191,7 +199,16 @@ model Notification {
 enum GameMode {
   SINGLEPLAYER
   MULTIPLAYER
+  RANKED
   CUSTOM
+}
+
+enum RankTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  DIAMOND
 }
 
 enum ChallengeStatus {

@@ -3,6 +3,7 @@ import type {
   Challenge, ChallengeSettings, GameMode, PlayerState, EventCard,
 } from '../types';
 
+
 export const gameService = {
   async createChallenge(mode: GameMode, settings: Partial<ChallengeSettings>): Promise<Challenge> {
     const { data } = await api.post<Challenge>('/challenges', { mode, settings });
@@ -41,5 +42,21 @@ export const gameService = {
   async getDailyRewards(): Promise<{ freeTimeAdded: boolean; crateAdded: boolean }> {
     const { data } = await api.post<{ freeTimeAdded: boolean; crateAdded: boolean }>('/session/daily-rewards');
     return data;
+  },
+
+  async updateChallengeSettings(
+    challengeId: string,
+    settings: Partial<ChallengeSettings>,
+    penalties?: import('../types').PenaltyRule[],
+  ): Promise<Challenge> {
+    const { data } = await api.patch<Challenge>(`/challenges/${challengeId}/settings`, {
+      settings,
+      penalties: penalties ? JSON.stringify(penalties) : undefined,
+    });
+    return data;
+  },
+
+  async endChallenge(challengeId: string): Promise<void> {
+    await api.post(`/challenges/${challengeId}/end`);
   },
 };

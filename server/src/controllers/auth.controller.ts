@@ -31,8 +31,8 @@ function signTokens(userId: string) {
 }
 
 function safeUser(user: User) {
-  const { passwordHash: _, provider: __, providerId: ___, ...rest } = user;
-  return rest;
+  const { passwordHash: _, provider: __, providerId: ___, rankTier, ...rest } = user;
+  return { ...rest, rankTier: rankTier.toLowerCase() };
 }
 
 async function generateUniqueUsername(base: string): Promise<string> {
@@ -300,10 +300,11 @@ export async function getMe(req: AuthRequest, res: Response, next: NextFunction)
         id: true, email: true, username: true, avatar: true, level: true,
         currentStreak: true, totalStreak: true, lastActiveDate: true,
         createdAt: true, gems: true,
+        rankPoints: true, rankTier: true, rankedWins: true, rankedLosses: true,
       },
     });
     if (!user) throw new AppError('User not found', 404);
-    res.json(user);
+    res.json({ ...user, rankTier: user.rankTier.toLowerCase() });
   } catch (err) { next(err); }
 }
 
@@ -312,5 +313,53 @@ export async function updatePushToken(req: AuthRequest, res: Response, next: Nex
     const { pushToken } = req.body as { pushToken: string };
     await prisma.user.update({ where: { id: req.userId }, data: { pushToken } });
     res.json({ message: 'Push token updated' });
+  } catch (err) { next(err); }
+}
+
+export async function updateMe(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const { username, avatar } = req.body as { username?: string; avatar?: string };
+    const update: Record<string, string> = {};
+
+    if (username !== undefined) {
+      const trimmed = username.trim();
+      if (trimmed.length < 3 || trimmed.length > 20) {
+        throw new AppError('Username must be 3–20 characters', 422);
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+        throw new AppError('Username can only contain letters, numbers and underscores', 422);
+      }
+      // Check uniqueness (exclude self)
+      const conflict = await prisma.user.findFirst({
+        where: { username: trimmed, NOT: { id: req.userId } },
+      });
+      if (conflict) throw new AppError('This username is already taken', 409);
+      update.username = trimmed;
+    }
+
+    if (avatar !== undefined) {
+      // Accept a data-URI (base64 image from the mobile client)
+      if (avatar && !avatar.startsWith('data:image/')) {
+        throw new AppError('Avatar must be a valid image data URI', 422);
+      }
+      update.avatar = avatar;
+    }
+
+    if (Object.keys(update).length === 0) {
+      throw new AppError('Nothing to update', 400);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data:  update,
+      select: {
+        id: true, email: true, username: true, avatar: true, level: true,
+        currentStreak: true, totalStreak: true, lastActiveDate: true,
+        createdAt: true, gems: true,
+        rankPoints: true, rankTier: true, rankedWins: true, rankedLosses: true,
+      },
+    });
+
+    res.json({ ...user, rankTier: user.rankTier.toLowerCase() });
   } catch (err) { next(err); }
 }

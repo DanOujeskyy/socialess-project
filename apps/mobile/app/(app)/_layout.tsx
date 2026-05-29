@@ -21,6 +21,16 @@ export default function AppLayout() {
         name="exercise"
         options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
       />
+      <Stack.Screen
+        name="matchmaking"
+        options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="game-results"
+        options={{ presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }}
+      />
+      <Stack.Screen name="leaderboard" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }

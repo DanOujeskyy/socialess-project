@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
-  login, register, refresh, logout, getMe, updatePushToken,
+  login, register, refresh, logout, getMe, updatePushToken, updateMe,
   googleAuth, appleAuth, forgotPassword, resetPassword,
 } from '../controllers/auth.controller';
 
@@ -40,6 +40,7 @@ router.post('/reset-password', [body('email').isEmail().withMessage('Enter a val
 router.post('/refresh', refresh);
 router.post('/logout', authMiddleware, logout);
 router.get('/me', authMiddleware, getMe);
+router.put('/me', authMiddleware, updateMe);
 router.patch('/push-token', authMiddleware, updatePushToken);
 
 export default router;

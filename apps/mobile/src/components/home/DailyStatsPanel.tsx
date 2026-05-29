@@ -35,7 +35,7 @@ export function DailyStatsPanel() {
     <Card>
       <Text style={styles.heading}>Today</Text>
       <View style={styles.grid}>
-        <StatItem icon="👆" label="Clicks"  value={String(dailyStats.clicks)}  subLabel={`+${formatSeconds(dailyStats.clicks * 15)} earned`} />
+        <StatItem icon="🤸" label="Push ups" value={String(dailyStats.clicks)}  subLabel={`+${formatSeconds(dailyStats.clicks * 15)} earned`} />
         <StatItem icon="🏋️" label="Squats"  value={String(dailyStats.squats)}  subLabel={`+${formatSeconds(dailyStats.squats * 10)} earned`} />
         <StatItem icon="👟" label="Steps"   value={dailyStats.steps.toLocaleString()} subLabel={`+${formatSeconds(Math.floor(dailyStats.steps / 1000 * 90))} earned`} />
         <StatItem icon="🔥" label="Streak"  value={`${streak}d`} />

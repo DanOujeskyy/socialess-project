@@ -22,7 +22,7 @@ export async function getMyCrates(req: AuthRequest, res: Response, next: NextFun
 export async function openCrate(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const crate = await prisma.crate.findFirst({
-      where: { id: req.params.id, userId: req.userId!, opened: false },
+      where: { id: req.params.id as string, userId: req.userId!, opened: false },
     });
     if (!crate) throw new AppError('Crate not found or already opened', 404);
 

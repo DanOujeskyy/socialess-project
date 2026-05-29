@@ -52,4 +52,9 @@ export const authService = {
   async updatePushToken(pushToken: string): Promise<void> {
     await api.patch('/auth/push-token', { pushToken });
   },
+
+  async updateProfile(payload: { username?: string; avatar?: string }): Promise<User> {
+    const { data } = await api.put<User>('/auth/me', payload);
+    return data;
+  },
 };

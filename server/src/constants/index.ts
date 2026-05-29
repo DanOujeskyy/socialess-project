@@ -42,6 +42,56 @@ export const ALL_CARD_TYPES: CardType[] = [
 
 export const MAX_CARDS_FROM_OTHER_PLAYERS = 2;
 
+// ── Rank System ────────────────────────────────────────────────────────────────
+
+export const RANK_TIER_THRESHOLDS = {
+  BRONZE:   0,
+  SILVER:   500,
+  GOLD:     1500,
+  PLATINUM: 3000,
+  DIAMOND:  5000,
+} as const;
+
+export function getTierFromPoints(points: number): string {
+  if (points >= 5000) return 'DIAMOND';
+  if (points >= 3000) return 'PLATINUM';
+  if (points >= 1500) return 'GOLD';
+  if (points >= 500)  return 'SILVER';
+  return 'BRONZE';
+}
+
+export function calcRankedPoints(placement: number, _totalPlayers: number): number {
+  // Designed for 10-player lobbies.
+  // 5th place is the "break-even" point — no gain, no loss.
+  if (placement === 1)  return  50;
+  if (placement === 2)  return  30;
+  if (placement === 3)  return  15;
+  if (placement === 4)  return   5;
+  if (placement === 5)  return   0;  // break-even
+  if (placement <= 7)   return  -5;
+  if (placement <= 9)   return -15;
+  return -25; // 10th place
+}
+
+// Fixed settings for all ranked matches — ends when only 1 player remains
+export const RANKED_SETTINGS = {
+  startingTime:    15 * 60,
+  maxTime:         100 * 60,
+  startingCards:   1,
+  eliminationThreshold: 0,
+  enabledCardTypes: [
+    'nerf_activities', 'buff_activities', 'ban_activity',
+    'limit_time_capacity', 'reduce_time', 'increase_time',
+    'reduce_time_frequently', 'increase_time_frequently',
+  ],
+  trackedApps: ['instagram', 'youtube', 'snapchat', 'tiktok', 'facebook'],
+  activityRates: { clicks: 15, squats: 10, stepsPerThousand: 90 },
+};
+
+export const MAX_CARDS_PER_PLAYER  = 6;
+export const RANKED_LOBBY_SIZE     = 10;   // players per ranked match
+export const LOBBY_FILL_TIME_MS   = 30_000; // max wait before forcing bot fill
+
 export const SPIN_WHEEL_WEIGHTS = [
   { type: 'extra_spin', weight: 15 },
   { type: 'crate_basic',  weight: 25 },

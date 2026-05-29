@@ -118,7 +118,7 @@ export default function PlayersScreen() {
                 card={card}
                 onPress={handleSendCard}
                 style={styles.cardGridItem}
-                compact
+                size="sm"
               />
             ))}
           </View>

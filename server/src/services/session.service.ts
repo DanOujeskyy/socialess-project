@@ -11,17 +11,12 @@ import type { Rarity, CardType } from '../types';
 
 export async function getOrCreateTodaySession(userId: string) {
   const today = startOfDay(new Date());
-  let session = await prisma.playerSession.findUnique({
-    where: { userId_date: { userId, date: today } },
+  return prisma.playerSession.upsert({
+    where:  { userId_date: { userId, date: today } },
+    create: { userId, date: today, maxTime: DEFAULT_MAX_TIME_SECONDS },
+    update: {},
     include: { activeEffects: true, eventCard: true },
   });
-  if (!session) {
-    session = await prisma.playerSession.create({
-      data: { userId, date: today, maxTime: DEFAULT_MAX_TIME_SECONDS },
-      include: { activeEffects: true, eventCard: true },
-    });
-  }
-  return session;
 }
 
 export async function claimDailyRewards(userId: string) {

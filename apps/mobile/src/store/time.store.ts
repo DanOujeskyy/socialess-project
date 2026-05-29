@@ -62,7 +62,13 @@ export const useTimeStore = create<TimeStore>((set, get) => ({
     })),
 
   consumeTime: (seconds) =>
-    set((state) => ({ currentTime: state.currentTime - seconds })),
+    set((state) => {
+      const actual = Math.min(seconds, Math.max(0, state.currentTime));
+      return {
+        currentTime: Math.max(0, state.currentTime - seconds),
+        dailyStats: { ...state.dailyStats, timeUsed: state.dailyStats.timeUsed + actual },
+      };
+    }),
 
   setActiveEffects: (effects) => set({ activeEffects: effects }),
 

@@ -1,0 +1,8 @@
+{
+  "name": "expo-screen-time",
+  "version": "1.0.0",
+  "description": "Native Screen Time (FamilyControls) blocking for Socialess",
+  "main": "src/index.ts",
+  "source": "src/index.ts",
+  "license": "MIT"
+}
